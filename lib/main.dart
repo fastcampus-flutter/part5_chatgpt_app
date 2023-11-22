@@ -87,7 +87,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   Future requestChat(String text) async {
     ChatCompletionModel openAiModel = ChatCompletionModel(
-      model: "gpt-3.5-turbo",
+      model: "gpt-3.5-turbo-0613",
       messages: [
         Messages(
           role: "system",
@@ -121,7 +121,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   Stream requestChatStream(String text) async* {
     ChatCompletionModel openAiModel = ChatCompletionModel(
-        model: "gpt-3.5-turbo",
+        model: "gpt-3.5-turbo-0613",
         messages: [
           Messages(
             role: "system",
@@ -135,7 +135,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     final request = http.Request("POST", url)
       ..headers.addAll(
         {
-          "Authorization": "Bearer ${apiKey}",
+          "Authorization": "Bearer $apiKey",
           "Content-Type": 'application/json; charset=UTF-8',
           "Connection": "keep-alive",
           "Accept": "*/*",
@@ -145,6 +145,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     request.body = jsonEncode(openAiModel.toJson());
 
     final resp = await http.Client().send(request);
+
     final byteStream = resp.stream.asyncExpand(
       (event) => Rx.timer(
         event,
@@ -152,26 +153,33 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       ),
     );
     final statusCode = resp.statusCode;
+
     var respText = "";
 
     await for (final byte in byteStream) {
-      var decode = utf8.decode(byte, allowMalformed: false);
-      final strings = decode.split("data: ");
-      for (final string in strings) {
-        final trimmedString = string.trim();
-        if (trimmedString.isNotEmpty && !trimmedString.endsWith("[DONE]")) {
-          final map = jsonDecode(trimmedString) as Map;
-          final choices = map["choices"] as List;
-          final delta = choices[0]["delta"] as Map;
-          if (delta["content"] != null) {
-            final content = delta["content"] as String;
-            respText += content;
-            setState(() {
-              streamText = respText;
-            });
-            yield content;
+      try {
+        var decoded = utf8.decode(byte, allowMalformed: false);
+        if (decoded.contains('"content":')) {
+          final strings = decoded.split("data: ");
+          for (final string in strings) {
+            final trimmedString = string.trim();
+            if (trimmedString.isNotEmpty && !trimmedString.endsWith("[DONE]")) {
+              final map = jsonDecode(trimmedString) as Map;
+              final choices = map["choices"] as List;
+              final delta = choices[0]["delta"] as Map;
+              if (delta["content"] != null) {
+                final content = delta["content"] as String;
+                respText += content;
+                setState(() {
+                  streamText = respText;
+                });
+                yield content;
+              }
+            }
           }
         }
+      } catch (e) {
+        print(e.toString());
       }
     }
 
@@ -266,7 +274,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               return Row(
                                 children: [
                                   Text(
-                                    "${text}",
+                                    "$text",
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 24,
