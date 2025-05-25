@@ -1,6 +1,13 @@
 # flutter_chatgpt_app
 
-"A new Flutter project."
+## 2025-05-25
+- Flutter 버전: Flutter SDK 3.32.0
+- Dart 버전 3.8
+- 패키지 버전 최신화 작업
+- android build 마이그레이션
+
+## 2024-06-03
+- 의존성 업데이트
 
 ## Getting Started
 
